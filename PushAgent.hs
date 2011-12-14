@@ -14,8 +14,8 @@ url = "http://localhost:55555/upsert"
 
 params :: ParsedEvent -> String
 params (ParsedEvent name date tags) = urlEncodeVars paramList
-    where paramList = [("name", name), ("eventDate", date), ("tags", (join "," tags))]  
+    where paramList = [("name", name), ("eventDate", show date), ("tags", (join "," tags))]  
 
-push :: ParsedEvent -> String
+push :: ParsedEvent -> IO ()
 push event = do resp <- simpleHTTP (getRequest (url ++ (params event) ))
                 putStrLn "done"

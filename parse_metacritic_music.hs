@@ -10,16 +10,10 @@ import PushAgent
 
 url = "http://www.metacritic.com/browse/albums/release-date/coming-soon/date?view=detailed"
 local = "examples/metacritic_music_dates.html"
-
--- download = do src <- openURL url
---             writeFile local src
                
 parse = do tags <- getTags
            let items = parseTable $ releaseTable tags
-               filtered = filter (\item -> length item > 2) items
-               combined = map (\item -> (item !! 0) ++ " - " ++ (item !! 1)) filtered
-           putStrLn $ unlines combined
-          
+           putStrLn $ unlines (map show items)       
            
 getTags = do src <- readFile local
              return $ parseTags src
@@ -28,31 +22,31 @@ releaseTable :: [Tag String] -> [Tag String]
 releaseTable tags = takeWhile (~/= "</table>") rest
     where rest = dropWhile (~/= "<table class=\"musicTable\">" ) tags
 
-parseTable :: [Tag String] -> [[String]]
-parseTable tags = map parseDateSection trs
+parseTable :: [Tag String] -> [ParsedEvent]
+parseTable tags = foldl foldFunc [] sameDatePart
     where sameDatePart = partitions (~== "<th>") tags
-          
-parseDateSection :: [Tag String] -> [ParsedEvent]
-parseDateSection tags = 
-    where thText = trim . innerText . takeWhile $ (~/= "<td>") 
-          date = millis . parseDate . thText
- 
-parseTds :: [Tag String] -> Integer -> ParsedEvent
-parseTds tr date = ParsedEvent (map inner [inner, artist]) date ["music"]
-              where tds = partition (~== "<td>") tr
-                    artist = find (\tdGroup = (head tdGroup) ~== "<td class=\"artistName\">") tds
-                    album = find (\tdGroup = (head tdGroup) ~== "<td class=\"albumTitle\">") tds
-                    inner (Just tdGroup) = trim . innerText tdGroup
-                    inner _ = "Unknown"
+          foldFunc acc item = (parseDateSection item) ++ acc
 
-createEvent ::  [String] -> Integer -> ParsedEvent
-createEvent = 
- 
+parseDateSection :: [Tag String] -> [ParsedEvent]
+parseDateSection tags = map (parseTds date) trs
+    where thText = trim . innerText . (takeWhile (~/= "<td>"))
+          date = millis . parseDate . thText $ tags
+          trs = partitions (~== "<tr>") tags   
+    
+parseTds :: Integer -> [Tag String] -> ParsedEvent
+parseTds date tr = ParsedEvent name date ["music"]
+              where name = (inner album) ++ " by " ++ (inner artist)  
+                    tds = partitions (~== "<td>") tr
+                    artist = find ((~== "<td class=\"artistName\">") . head) tds
+                    album = find (( ~== "<td class=\"albumTitle\">") . head) tds
+                    inner (Just tdGroup) = trim $ innerText tdGroup
+                    inner _ = "Unknown"
+                    
 trim :: String -> String
 trim = f . f
        where f = reverse.dropWhile isSpace
 
 parseDate :: String -> UTCTime
-parseDate = let fmt = "%e %M %Y"
-              locale = Locale.defaultTimeLocale
+parseDate = let fmt = "%e %B %Y"
+                locale = Locale.defaultTimeLocale
           in Time.readTime locale fmt
