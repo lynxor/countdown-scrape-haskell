@@ -1,6 +1,6 @@
 module DateLib(
   sast,
-  getMillis
+  millis
   ) where
 
 import Data.Time
@@ -11,8 +11,8 @@ import System.Locale as Locale
 
 sast = hoursToTimeZone 2
 
-getMillis :: UTCTime -> Integer
-getMillis = (* 1000) . read . seconds 
+millis :: UTCTime -> Integer
+millis = (* 1000) . read . seconds 
   where seconds = formatTime defaultTimeLocale "%s" 
 
 

@@ -8,7 +8,7 @@ import Network.HTTP.Base
 import Data.String.Utils
 import Data.Time.Calendar
 
-data ParsedEvent = ParsedEvent String Day [String] deriving (Show)
+data ParsedEvent = ParsedEvent String Integer [String] deriving (Show)
 
 url = "http://localhost:55555/upsert"
 
