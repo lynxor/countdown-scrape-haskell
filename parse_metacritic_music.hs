@@ -7,13 +7,17 @@ import Data.Time as Time
 import Data.Time.Clock
 import System.Locale as Locale
 import PushAgent
+import Data.Maybe
+import Data.Traversable
 
 url = "http://www.metacritic.com/browse/albums/release-date/coming-soon/date?view=detailed"
 local = "examples/metacritic_music_dates.html"
                
 parse = do tags <- getTags
            let items = parseTable $ releaseTable tags
-           putStrLn $ unlines (map show items)       
+           pushed <- sequenceA $ map push items
+           return ()
+           
            
 getTags = do src <- readFile local
              return $ parseTags src
@@ -28,19 +32,20 @@ parseTable tags = foldl foldFunc [] sameDatePart
           foldFunc acc item = (parseDateSection item) ++ acc
 
 parseDateSection :: [Tag String] -> [ParsedEvent]
-parseDateSection tags = map (parseTds date) trs
+parseDateSection tags = catMaybes $ map (parseTds date) trs
     where thText = trim . innerText . (takeWhile (~/= "<td>"))
           date = millis . parseDate . thText $ tags
           trs = partitions (~== "<tr>") tags   
     
-parseTds :: Integer -> [Tag String] -> ParsedEvent
-parseTds date tr = ParsedEvent name date ["music"]
-              where name = (inner album) ++ " by " ++ (inner artist)  
+parseTds :: Integer -> [Tag String] -> Maybe ParsedEvent
+parseTds date tr = event (inner album) (inner artist)
+              where event (Just alb) (Just art) = Just (ParsedEvent (alb ++ " by " ++ art) date ["music"])
+                    event _ _ = Nothing 
                     tds = partitions (~== "<td>") tr
                     artist = find ((~== "<td class=\"artistName\">") . head) tds
                     album = find (( ~== "<td class=\"albumTitle\">") . head) tds
-                    inner (Just tdGroup) = trim $ innerText tdGroup
-                    inner _ = "Unknown"
+                    inner = fmap (trim . innerText )
+                    
                     
 trim :: String -> String
 trim = f . f
@@ -49,4 +54,4 @@ trim = f . f
 parseDate :: String -> UTCTime
 parseDate = let fmt = "%e %B %Y"
                 locale = Locale.defaultTimeLocale
-          in Time.readTime locale fmt
+            in Time.readTime locale fmt
