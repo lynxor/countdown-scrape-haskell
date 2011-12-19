@@ -14,14 +14,16 @@ import Data.String.Utils (strip)
 url = "http://www.metacritic.com/browse/albums/release-date/coming-soon/date?view=detailed"
 local = "examples/metacritic_music_dates.html"
                
-parse = do tags <- getTags
-           let items = parseTable $ releaseTable tags
-           pushed <- sequenceA $ map push items
-           return ()
-           
-           
-getTags = do src <- readFile local
-             return $ parseTags src
+parse tags = do
+               let items = parseTable $ releaseTable tags
+               pushed <- sequenceA $ map push items
+               return ()
+
+getOnline = do respStr <- asString url
+               parse $ parseTags respStr
+
+getOffline src = do src <- readFile local
+                    parse $ parseTags src
              
 releaseTable :: [Tag String] -> [Tag String]
 releaseTable tags = takeWhile (~/= "</table>") rest
