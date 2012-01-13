@@ -9,15 +9,17 @@ import System.Locale as Locale
 import PushAgent
 import Data.Maybe
 import Data.Traversable
+import Data.Utils.String
 
-url = "http://www.metacritic.com/browse/albums/release-date/coming-soon/date?view=detailed"
+originUrl = "http://www.metacritic.com/browse/albums/release-date/coming-soon/date?view=detailed"
+
 local = "examples/metacritic_music_dates.html"
                
+
 parse = do tags <- getTags
            let items = parseTable $ releaseTable tags
            pushed <- sequenceA $ map push items
            return ()
-           
            
 getTags = do src <- readFile local
              return $ parseTags src
@@ -33,24 +35,19 @@ parseTable tags = foldl foldFunc [] sameDatePart
 
 parseDateSection :: [Tag String] -> [ParsedEvent]
 parseDateSection tags = catMaybes $ map (parseTds date) trs
-    where thText = trim . innerText . (takeWhile (~/= "<td>"))
+    where thText = strip . innerText . (takeWhile (~/= "<td>"))
           date = millis . parseDate . thText $ tags
           trs = partitions (~== "<tr>") tags   
     
 parseTds :: Integer -> [Tag String] -> Maybe ParsedEvent
-parseTds date tr = event (inner album) (inner artist)
-              where event (Just alb) (Just art) = Just (ParsedEvent (alb ++ " by " ++ art) date ["music"])
-                    event _ _ = Nothing 
-                    tds = partitions (~== "<td>") tr
-                    artist = find ((~== "<td class=\"artistName\">") . head) tds
-                    album = find (( ~== "<td class=\"albumTitle\">") . head) tds
-                    inner = fmap (trim . innerText )
-                    
-                    
-trim :: String -> String
-trim = f . f
-       where f = reverse.dropWhile isSpace
-
+parseTds date tr = event albumM artistM
+  where event (Just alb) (Just art) = Just (ParsedEvent (alb ++ " by " ++ art) date ["music"])
+        event _ _ = Nothing 
+        tds = partitions (~== "<td>") tr
+        artistM = inner $ find ((~== "<td class=\"artistName\">") . head) tds
+        albumM = inner $ find (( ~== "<td class=\"albumTitle\">") . head) tds
+        inner = fmap (strip . innerText )
+        
 parseDate :: String -> UTCTime
 parseDate = let fmt = "%e %B %Y"
                 locale = Locale.defaultTimeLocale

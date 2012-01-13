@@ -7,15 +7,18 @@ import Network.HTTP
 import Network.HTTP.Base
 import Data.String.Utils
 import Data.Time.Calendar
+import OGP
 
-data ParsedEvent = ParsedEvent String Integer [String] deriving (Show)
-
-url = "http://localhost:55555/countdown/upsert/?"
+data ParsedEvent = ParsedEvent { name :: String
+                               , eventDate :: Integer 
+                               , tags :: [String] 
+                               , ogpType :: OGPType
+                               , originUrl :: String } deriving (Show)
 
 params :: ParsedEvent -> String
-params (ParsedEvent name date tags) = urlEncodeVars paramList
-    where paramList = [("name", name), ("eventDate", show date), ("tags", (join "," tags))]  
+params (ParsedEvent name date tags ogpType originUrl) = urlEncodeVars paramList
+    where paramList = [("name", name), ("eventDate", show date), ("tags", (join "," tags)), ("ogpType", show ogpType), ("originUrl", originUrl)]  
 
-push :: ParsedEvent -> IO String
-push event = do resp <- simpleHTTP (postRequest (url ++ (params event) ))
-                return "done ..."
+push :: String -> ParsedEvent -> IO String
+push url event = do resp <- simpleHTTP (postRequest (url ++ (params event) ))
+                    return "done ..."
