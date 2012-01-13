@@ -20,9 +20,9 @@ params :: ParsedEvent -> String
 params (ParsedEvent name date tags ogpType originUrl) = urlEncodeVars paramList
     where paramList = [("name", name), ("eventDate", show date), ("tags", (join "," tags)), ("ogpType", show ogpType), ("originUrl", originUrl)]  
 
-push :: ParsedEvent -> IO String
-push event = do resp <- simpleHTTP (postRequest (url ++ (params event) ))
-                return "done ..."
+push :: String -> ParsedEvent -> IO String
+push url event = do resp <- simpleHTTP (postRequest (url ++ (params event) ))
+                    return "done ..."
 
 
 asString :: String -> IO [Char]

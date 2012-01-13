@@ -1,5 +1,5 @@
 module OGP
-( OGPType
+( OGPType(..)
 ) where
 
 import qualified Data.Map as Map
