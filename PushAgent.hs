@@ -1,6 +1,7 @@
 module PushAgent
 ( ParsedEvent(..)
 , push
+, asString
 ) where
 
 import Network.HTTP
@@ -19,6 +20,12 @@ params :: ParsedEvent -> String
 params (ParsedEvent name date tags ogpType originUrl) = urlEncodeVars paramList
     where paramList = [("name", name), ("eventDate", show date), ("tags", (join "," tags)), ("ogpType", show ogpType), ("originUrl", originUrl)]  
 
-push :: String -> ParsedEvent -> IO String
-push url event = do resp <- simpleHTTP (postRequest (url ++ (params event) ))
-                    return "done ..."
+push :: ParsedEvent -> IO String
+push event = do resp <- simpleHTTP (postRequest (url ++ (params event) ))
+                return "done ..."
+
+
+asString :: String -> IO [Char]
+asString reqUrl = do
+  resp <- simpleHTTP (getRequest reqUrl)
+  getResponseBody resp

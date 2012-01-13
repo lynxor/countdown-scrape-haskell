@@ -6,6 +6,6 @@ Using cabal install the following packages:
 
 - tagsoup
 - Network
+- MissingH
 
-If it does not compile after doing that, you're on your own. Have fun.
-
+For now just call the parse function in parse_metacritic_music.hs.  This will parse the html and push it to localhost:55555/countdown/upsert
